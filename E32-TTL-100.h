@@ -1,10 +1,10 @@
-/*
- * E32-TTL-100.h
+/**
+ * E32-TTL-100 Transceiver Interface
  *
- *  Created on: 2017/10/01
- *      Author: Bob Chen
+ * @author Bob Chen (bob-0505@gotmail.com)
+ * @date 1 November 2017
+ * https://github.com/Bob0505/E32-TTL-100
  */
-
 #ifndef E32-TTL-100_H_
 #define E32-TTL-100_H_
 
@@ -14,6 +14,8 @@ typedef enum {
   RET_NOT_SUPPORT,
   RET_NOT_IMPLEMENT,
   RET_NOT_INITIAL,
+  RET_INVALID_PARAM,
+  RET_DATA_SIZE_NOT_MATCH,
   RET_BUF_TOO_SMALL,
   RET_TIMEOUT,
   RET_HW_ERROR,
@@ -129,5 +131,8 @@ struct MVerstruct {
 
 
 #define Device_A
+
+#define TIME_OUT_CNT	100
+#define MAX_TX_SIZE		58
 
 #endif /* E32-TTL-100_H_ */
