@@ -9,10 +9,6 @@
 
 #include "E32-TTL-100.h"
 
-#define M0_PIN      7
-#define M1_PIN      8
-#define AUX_PIN     A0
-
 /*
  need series a 4.7k Ohm resistor between .
  UNO/NANO(5V mode)                E32-TTL-100
@@ -24,12 +20,16 @@
     | D11(Tx)| <---> 4.7k Ohm <---> | Rx   |
     *--------*                      *------*
 */
-#define SOFT_RX 10
+#define M0_PIN	7
+#define M1_PIN	8
+#define AUX_PIN	A0
+#define SOFT_RX	10
 #define SOFT_TX 11
+
 SoftwareSerial softSerial(SOFT_RX, SOFT_TX);  // RX, TX
 
+//=== AUX ===========================================+
 bool AUX_HL;
-
 bool ReadAUX()
 {
   int val = analogRead(AUX_PIN);
@@ -73,7 +73,8 @@ RET_STATUS WaitAUX_H()
 
   return STATUS;
 }
-
+//=== AUX ===========================================-
+//=== Mode Select ===================================+
 bool chkModeSame(MODE_TYPE mode)
 {
   static MODE_TYPE pre_mode = MODE_INIT;
@@ -125,11 +126,18 @@ void SwitchMode(MODE_TYPE mode)
     delay(10);
   }
 }
-
+//=== Mode Select ===================================-
+//=== Basic cmd =====================================+
 void cleanUARTBuf()
 {
+  bool IsNull = true;
+
   while (softSerial.available())
+  {
+    IsNull = false;
+
     softSerial.read();
+  }
 }
 
 void triple_cmd(SLEEP_MODE_CMD_TYPE Tcmd)
@@ -156,15 +164,22 @@ RET_STATUS Module_info(uint8_t* pReadbuf, uint8_t buf_len)
     } Serial.println("");
   }
   else
+  {
     STATUS = RET_DATA_SIZE_NOT_MATCH;
+    Serial.print("  RET_DATA_SIZE_NOT_MATCH - Readcnt: ");  Serial.println(Readcnt);
+    cleanUARTBuf();
+  }
 
   return STATUS;
 }
-
+//=== Basic cmd =====================================-
+//=== Sleep mode cmd ================================+
 RET_STATUS Write_CFG_PDS(struct CFGstruct* pCFG)
 {
   softSerial.write((uint8_t *)pCFG, 6);
-  delay(50);  //need ti check
+
+  WaitAUX_H();
+  delay(1200);  //need ti check
 
   return RET_SUCCESS;
 }
@@ -221,7 +236,7 @@ void Reset_module()
   triple_cmd(W_RESET_MODULE);
 
   WaitAUX_H();
-  delay(10);
+  delay(1000);
 }
 
 RET_STATUS SleepModeCmd(uint8_t CMD, void* pBuff)
@@ -258,6 +273,33 @@ RET_STATUS SleepModeCmd(uint8_t CMD, void* pBuff)
   WaitAUX_H();
   return STATUS;
 }
+//=== Sleep mode cmd ================================-
+
+RET_STATUS SettingModule(struct CFGstruct *pCFG)
+{
+  RET_STATUS STATUS = RET_SUCCESS;
+
+  //device A : 05 01
+  //device B : 05 02
+  //C0 xx xx 1A 17 44
+  pCFG->ADDH = 0x05;
+#ifdef Device_A
+  pCFG->ADDL = 0x01;
+#else
+  pCFG->ADDL = 0x02;
+#endif
+
+  pCFG->OPTION_bits.trsm_mode =TRSM_FP_MODE;
+  pCFG->OPTION_bits.tsmt_pwr = TSMT_PWR_10DB;
+
+  STATUS = SleepModeCmd(W_CFG_PWR_DWN_SAVE, (void* )pCFG);
+
+  SleepModeCmd(W_RESET_MODULE, NULL);
+
+  STATUS = SleepModeCmd(R_CFG, (void* )pCFG);
+
+  return STATUS;
+}
 
 // The setup function runs once when you press reset or power the board
 void setup()
@@ -281,6 +323,7 @@ void setup()
 #endif
 
   STATUS = SleepModeCmd(R_CFG, (void* )&CFG);
+  STATUS = SettingModule(&CFG);
 
   STATUS = SleepModeCmd(R_MODULE_VERSION, (void* )&MVer);
 
@@ -290,6 +333,9 @@ void setup()
   //self-check initialization.
   WaitAUX_H();
   delay(10);
+  
+  if(STATUS == RET_SUCCESS)
+    Serial.println("Setup init OK!!");
 }
 
 // The loop function runs over and over again forever
