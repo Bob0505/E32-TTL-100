@@ -301,7 +301,7 @@ RET_STATUS SettingModule(struct CFGstruct *pCFG)
   return STATUS;
 }
 
-// The setup function runs once when you press reset or power the board
+//The setup function is called once at startup of the sketch
 void setup()
 {
   RET_STATUS STATUS = RET_SUCCESS;
@@ -338,7 +338,7 @@ void setup()
     Serial.println("Setup init OK!!");
 }
 
-// The loop function runs over and over again forever
+// The loop function is called in an endless loop
 void loop()
 {
 
