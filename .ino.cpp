@@ -2,7 +2,7 @@
 //This is a automatic generated file
 //Please do not modify this file
 //If you touch this file your change will be overwritten during the next build
-//This file has been generated on 2017-11-20 23:44:37
+//This file has been generated on 2017-11-24 23:50:56
 
 #include "Arduino.h"
 #include <SoftwareSerial.h>
@@ -20,7 +20,10 @@ RET_STATUS Read_module_version(struct MVerstruct* MVer) ;
 void Reset_module() ;
 RET_STATUS SleepModeCmd(uint8_t CMD, void* pBuff) ;
 RET_STATUS SettingModule(struct CFGstruct *pCFG) ;
+RET_STATUS ReceiveMsg(uint8_t *pdatabuf, uint8_t *data_len) ;
+RET_STATUS SendMsg() ;
 void setup() ;
+void blinkLED() ;
 void loop() ;
 
 

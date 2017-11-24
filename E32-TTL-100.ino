@@ -279,14 +279,12 @@ RET_STATUS SettingModule(struct CFGstruct *pCFG)
 {
   RET_STATUS STATUS = RET_SUCCESS;
 
-  //device A : 05 01
-  //device B : 05 02
-  //C0 xx xx 1A 17 44
-  pCFG->ADDH = 0x05;
 #ifdef Device_A
-  pCFG->ADDL = 0x01;
+  pCFG->ADDH = DEVICE_A_ADDR_H;
+  pCFG->ADDL = DEVICE_A_ADDR_L;
 #else
-  pCFG->ADDL = 0x02;
+  pCFG->ADDH = DEVICE_B_ADDR_H;
+  pCFG->ADDL = DEVICE_B_ADDR_L;
 #endif
 
   pCFG->OPTION_bits.trsm_mode =TRSM_FP_MODE;
@@ -297,6 +295,64 @@ RET_STATUS SettingModule(struct CFGstruct *pCFG)
   SleepModeCmd(W_RESET_MODULE, NULL);
 
   STATUS = SleepModeCmd(R_CFG, (void* )pCFG);
+
+  return STATUS;
+}
+
+RET_STATUS ReceiveMsg(uint8_t *pdatabuf, uint8_t *data_len)
+{
+
+  RET_STATUS STATUS = RET_SUCCESS;
+  uint8_t idx;
+
+  SwitchMode(MODE_0_NORMAL);
+  *data_len = softSerial.available();
+
+  if (*data_len > 0)
+  {
+    Serial.print("ReceiveMsg: ");  Serial.print(*data_len);  Serial.println(" bytes.");
+
+    for(idx=0;idx<*data_len;idx++)
+      *(pdatabuf+idx) = softSerial.read();
+
+    for(idx=0;idx<*data_len;idx++)
+    {
+      Serial.print(" 0x");
+      Serial.print(0xFF & *(pdatabuf+idx), HEX);    // print as an ASCII-encoded hexadecimal
+    } Serial.println("");
+  }
+  else
+  {
+    STATUS = RET_NOT_IMPLEMENT;
+  }
+
+  return STATUS;
+}
+
+RET_STATUS SendMsg()
+{
+  RET_STATUS STATUS = RET_SUCCESS;
+
+  SwitchMode(MODE_0_NORMAL);
+
+  if(ReadAUX()!=HIGH)
+  {
+    return RET_NOT_IMPLEMENT;
+  }
+  delay(10);
+  if(ReadAUX()!=HIGH)
+  {
+    return RET_NOT_IMPLEMENT;
+  }
+
+  //TRSM_FP_MODE
+  //Send format : ADDH ADDL CHAN DATA_0 DATA_1 DATA_2 ...
+#ifdef Device_A
+  uint8_t SendBuf[4] = { DEVICE_B_ADDR_H, DEVICE_B_ADDR_L, 0x17, random(0x00, 0x80)};	//for A
+#else
+  uint8_t SendBuf[4] = { DEVICE_A_ADDR_H, DEVICE_A_ADDR_L, 0x17, random(0x81, 0xFF)};	//for B
+#endif
+  softSerial.write(SendBuf, 4);
 
   return STATUS;
 }
@@ -338,9 +394,30 @@ void setup()
     Serial.println("Setup init OK!!");
 }
 
+void blinkLED()
+{
+  static bool LedStatus = LOW;
+
+  digitalWrite(LED_BUILTIN, LedStatus);
+  LedStatus = !LedStatus;
+}
+
 // The loop function is called in an endless loop
 void loop()
 {
+  uint8_t data_buf[100], data_len;
+
+#ifdef Device_A
+  if(ReceiveMsg(data_buf, &data_len)==RET_SUCCESS)
+  {
+    blinkLED();
+  }
+#else
+  if(SendMsg()==RET_SUCCESS)
+  {
+    blinkLED();
+  }
+#endif
 
   delay(random(400, 600));
 }

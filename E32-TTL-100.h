@@ -135,4 +135,9 @@ struct MVerstruct {
 #define TIME_OUT_CNT	100
 #define MAX_TX_SIZE		58
 
+#define DEVICE_A_ADDR_H 0x05
+#define DEVICE_A_ADDR_L 0x01
+#define DEVICE_B_ADDR_H 0x05
+#define DEVICE_B_ADDR_L 0x02
+
 #endif /* E32-TTL-100_H_ */
